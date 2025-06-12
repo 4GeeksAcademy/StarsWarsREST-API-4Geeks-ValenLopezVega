@@ -9,7 +9,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Character, Planet, Favorite
+from models import db, User, People, Planet, Favorite
 # from models import Person
 
 app = Flask(__name__)
@@ -43,18 +43,18 @@ def sitemap():
     return generate_sitemap(app)
 
 
-@app.route("/characters", methods=["GET"])
-def get_characters():
-    characters = db.session.execute(select(Character)).scalars().all()
-    return jsonify([character.serialize() for character in characters]), 200
+@app.route("/people", methods=["GET"])
+def get_people():
+    people = db.session.execute(select(People)).scalars().all()
+    return jsonify([person.serialize() for person in people]), 200
 
 
-@app.route("/characters/<int:character_id>", methods=["GET"])
-def get_one_character(character_id):
-    character = db.session.get(Character, character_id)
-    if character is None:
-        return jsonify({"error": "Character not found"}), 404
-    return jsonify(character.serialize()), 200
+@app.route("/people/<int:people_id>", methods=["GET"])
+def get_one_person(people_id):
+    person = db.session.get(People, people_id)
+    if person is None:
+        return jsonify({"error": "Person not found"}), 404
+    return jsonify(person.serialize()), 200
 
 
 @app.route("/planets", methods=["GET"])
@@ -97,27 +97,27 @@ def add_favorite_planet(planet_id):
         return jsonify({"error": str(error)}), 500
 
 
-@app.route("/favorite/character/<int:character_id>", methods=["POST"])
-def add_favorite_character(character_id):
+@app.route("/favorite/people/<int:people_id>", methods=["POST"])
+def add_favorite_person(people_id):
     body = request.json
 
     if not body or 'user_id' not in body:
         return jsonify({"error": "Missing user_id in request body"}), 400
 
-    character = db.session.get(Character, character_id)
-    if character is None:
-        return jsonify({"error": "Character not found"}), 404
+    person = db.session.get(People, people_id)
+    if person is None:
+        return jsonify({"error": "Person not found"}), 404
 
     user = db.session.get(User, body['user_id'])
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    favorite = Favorite(user_id=body['user_id'], character_id=character_id)
+    favorite = Favorite(user_id=body['user_id'], people_id=people_id)
 
     db.session.add(favorite)
     try:
         db.session.commit()
-        return jsonify({"message": "Character saved to favorites"}), 201
+        return jsonify({"message": "Person saved to favorites"}), 201
     except Exception as error:
         db.session.rollback()
         return jsonify({"error": str(error)}), 500
@@ -152,8 +152,8 @@ def delete_favorite_planet(planet_id):
         return jsonify({"error": "Error deleting favorite"}), 500
 
 
-@app.route("/favorite/character/<int:character_id>", methods=["DELETE"])
-def delete_favorite_character(character_id):
+@app.route("/favorite/people/<int:people_id>", methods=["DELETE"])
+def delete_favorite_person(people_id):
  
     body = request.json
 
@@ -165,7 +165,7 @@ def delete_favorite_character(character_id):
     favorite = db.session.execute(
         db.select(Favorite).where(
             Favorite.user_id == user_id,
-            Favorite.character_id == character_id)
+            Favorite.people_id == people_id)
     ).scalar_one_or_none()
 
     if favorite is None:
